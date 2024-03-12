@@ -154,6 +154,14 @@ impl crate::sealed::Sealed for SystemRandom {}
 impl sealed::SecureRandom for SystemRandom {
     #[inline(always)]
     fn fill_impl(&self, dest: &mut [u8]) -> Result<(), error::Unspecified> {
-        getrandom::getrandom(dest).map_err(|_| error::Unspecified)
+        // getrandom::getrandom(dest).map_err(|_| error::Unspecified)
+        extern "C" {
+            fn sgx_read_rand(p: *mut u8, l: usize) -> u32;
+        }
+
+        match unsafe { sgx_read_rand(dest.as_mut_ptr(), dest.len()) } {
+            0 => Ok(()),
+            _ => Err(error::Unspecified),
+        }
     }
 }
